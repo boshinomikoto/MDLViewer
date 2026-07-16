@@ -260,29 +260,49 @@ public:
         std::tie(z_ScaleNeg, z_ScaleEdit, z_ScaleSlider) = MakeAxisRow(panel_, " Z", 25.0f, 0.5f);
         auto* scaleButtonApply = MakeButton(panel_, "Apply", 170, 30);
         scaleButtonApply->SetAlignment(urho3d::HA_CENTER, urho3d::VA_TOP);
-              
 
+        MakeLabel(panel_, "\nRotation");
+        std::tie(x_RotationNeg, x_RotationEdit, x_RotationSlider) = MakeAxisRow(panel_, " X", 25.0f, 0.5f);
+        std::tie(y_RotationNeg, y_RotationEdit, y_RotationSlider) = MakeAxisRow(panel_, " Y", 25.0f, 0.5f);
+        std::tie(z_RotationNeg, z_RotationEdit, z_RotationSlider) = MakeAxisRow(panel_, " Z", 25.0f, 0.5f);
+        auto* rotationButtonApply = MakeButton(panel_, "Apply", 170, 30);
+        rotationButtonApply->SetAlignment(urho3d::HA_CENTER, urho3d::VA_TOP);
+              
         // ── Подписки ─────────────────────────────────────────────
+        //load
         SubscribeToEvent(loadBtn, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleButtonPress));
         SubscribeToEvent(mb,      urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleMDLButtonPress));
         SubscribeToEvent(xb,      urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleXMLButtonPress));
 
-        SubscribeToEvent(x_Neg, urho3d::E_TOGGLED, URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
-        SubscribeToEvent(y_Neg, urho3d::E_TOGGLED, URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
-        SubscribeToEvent(z_Neg, urho3d::E_TOGGLED, URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
-        SubscribeToEvent(x_PosSlider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleTransform));
-        SubscribeToEvent(y_PosSlider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleTransform));
-        SubscribeToEvent(z_PosSlider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleTransform));
-        SubscribeToEvent(locButtonApply, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleLocationButtonApply));
+        //pos
+        SubscribeToEvent(x_Neg,          urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
+        SubscribeToEvent(y_Neg,          urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
+        SubscribeToEvent(z_Neg,          urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
+        SubscribeToEvent(x_PosSlider,    urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleTransform));
+        SubscribeToEvent(y_PosSlider,    urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleTransform));
+        SubscribeToEvent(z_PosSlider,    urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleTransform));
 
-        SubscribeToEvent(x_ScaleNeg, urho3d::E_TOGGLED, URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
-        SubscribeToEvent(y_ScaleNeg, urho3d::E_TOGGLED, URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
-        SubscribeToEvent(z_ScaleNeg, urho3d::E_TOGGLED, URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
+        SubscribeToEvent(locButtonApply, urho3d::E_RELEASED,      URHO3D_HANDLER(StaticSceneApp, HandleLocationButtonApply));
+
+        //scale
+        SubscribeToEvent(x_ScaleNeg,    urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
+        SubscribeToEvent(y_ScaleNeg,    urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
+        SubscribeToEvent(z_ScaleNeg,    urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
         SubscribeToEvent(x_ScaleSlider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleScaleTransform));
         SubscribeToEvent(y_ScaleSlider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleScaleTransform));
         SubscribeToEvent(z_ScaleSlider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleScaleTransform));
 
         SubscribeToEvent(scaleButtonApply, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleScaleButtonApply));
+
+        //rotation
+        SubscribeToEvent(x_RotationNeg,    urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
+        SubscribeToEvent(y_RotationNeg,    urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
+        SubscribeToEvent(z_RotationNeg,    urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
+        SubscribeToEvent(x_RotationSlider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleRotationTransform));
+        SubscribeToEvent(y_RotationSlider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleRotationTransform));
+        SubscribeToEvent(z_RotationSlider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleRotationTransform));
+
+        SubscribeToEvent(rotationButtonApply, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleRotationButtonApply));
     }
 
     void ShowGlobalValues()
@@ -374,8 +394,8 @@ public:
         auto* cache = GetSubsystem<urho3d::ResourceCache>();
         auto* ui = GetSubsystem<urho3d::UI>();
         auto* image = ui->GetRoot()->CreateChild<Urho3D::BorderImage>();
-        image->SetTexture(cache->GetResource<Urho3D::Texture2D>("UI/icons/X1.png"));
-        image->SetSize(24, 25);
+        image->SetTexture(cache->GetResource<Urho3D::Texture2D>("UI/icons/x4.png"));
+        image->SetSize(30, 30);
         image->SetAlignment(Urho3D::HA_CENTER, Urho3D::VA_CENTER);
         image->SetPosition(0, 0);
     }
@@ -649,6 +669,30 @@ public:
             lastScaleZ_ = 0.0f;
             isProgrammaticChangeS = false;
         }
+        if (sender == x_RotationNeg)
+        {
+            x_nagativeRotation = !x_nagativeRotation;
+            isProgrammaticChangeR = true;
+            x_RotationSlider->SetValue(0.0f);
+            lastRotationX_ = 0.0f;
+            isProgrammaticChangeR = false;
+        }
+        if (sender == y_RotationNeg)
+        {
+            y_nagativeRotation = !y_nagativeRotation;
+            isProgrammaticChangeR = true;
+            y_RotationSlider->SetValue(0.0f);
+            lastRotationY_ = 0.0f;
+            isProgrammaticChangeR = false;
+        }
+        if (sender == z_RotationNeg)
+        {
+            z_nagativeRotation = !z_nagativeRotation;
+            isProgrammaticChangeR = true;
+            z_RotationSlider->SetValue(0.0f);
+            lastRotationZ_ = 0.0f;
+            isProgrammaticChangeR = false;
+        }
     }
 
     void HandleTransform(Urho3D::StringHash eventType, Urho3D::VariantMap& eventData)
@@ -665,7 +709,6 @@ public:
             float delta = currentValue - lastX_;
             if (x_nagativeCoord) delta = -delta;
             tNode_->SetPosition({ pos.x_ + delta, pos.y_, pos.z_ });
-            //x_Edit->SetText(urho3d::String(currentValue, 2));
             lastX_ = currentValue; 
 
             char buf[8];
@@ -677,7 +720,6 @@ public:
             float delta = currentValue - lastY_;
             if (y_nagativeCoord) delta = -delta;
             tNode_->SetPosition({ pos.x_, pos.y_ + delta, pos.z_ });
-            //y_Edit->SetText(urho3d::String(currentValue, 2));
             lastY_ = currentValue;
 
             char buf[8];
@@ -689,7 +731,6 @@ public:
             float delta = currentValue - lastZ_;
             if (z_nagativeCoord) delta = -delta;
             tNode_->SetPosition({ pos.x_, pos.y_, pos.z_ + delta });
-            //z_Edit->SetText(urho3d::String(currentValue, 2));
             lastZ_ = currentValue;
 
             char buf[8];
@@ -713,7 +754,6 @@ public:
             float delta = currentValue - lastScaleX_;
             if (x_nagativeScale) delta = -delta;
             tNode_->SetScale({ scale.x_ + delta, scale.y_, scale.z_ });
-            //x_ScaleEdit->SetText(urho3d::String(currentValue, 2));
             lastScaleX_ = currentValue;
             char buf[8];
             snprintf(buf, sizeof(buf), "%.2f", tNode_->GetScale().x_);
@@ -724,7 +764,6 @@ public:
             float delta = currentValue - lastScaleY_;
             if (y_nagativeScale) delta = -delta;
             tNode_->SetScale({ scale.x_, scale.y_ + delta, scale.z_ });
-            //y_ScaleEdit->SetText(urho3d::String(currentValue, 2));
             lastScaleY_ = currentValue;
             char buf[8];
             snprintf(buf, sizeof(buf), "%.2f", tNode_->GetScale().y_);
@@ -735,11 +774,56 @@ public:
             float delta = currentValue - lastScaleZ_;
             if (z_nagativeScale) delta = -delta;
             tNode_->SetScale({ scale.x_, scale.y_, scale.z_ + delta });
-            //z_ScaleEdit->SetText(urho3d::String(currentValue, 2));
             lastScaleZ_ = currentValue;
             char buf[8];
             snprintf(buf, sizeof(buf), "%.2f", tNode_->GetScale().z_);
             z_ScaleEdit->SetText(urho3d::String(buf));
+        }
+    }
+
+    void HandleRotationTransform(Urho3D::StringHash, Urho3D::VariantMap& eventData)
+    {
+        if (!tNode_) return;
+        if (isProgrammaticChangeR) return;
+
+        auto* slider = static_cast<urho3d::Slider*>(
+            eventData[urho3d::SliderChanged::P_ELEMENT].GetPtr());
+        float currentValue = eventData[urho3d::SliderChanged::P_VALUE].GetFloat();
+
+        urho3d::Vector3 euler = tNode_->GetRotation().EulerAngles();
+
+        if (slider == x_RotationSlider)
+        {
+            float delta = currentValue - lastRotationX_;
+            if (x_nagativeRotation) delta = -delta;
+            euler.x_ += delta;
+            tNode_->SetRotation(urho3d::Quaternion(euler.x_, euler.y_, euler.z_));
+            lastRotationX_ = currentValue;
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%.2f", euler.x_);
+            x_RotationEdit->SetText(urho3d::String(buf));
+        }
+        else if (slider == y_RotationSlider)
+        {
+            float delta = currentValue - lastRotationY_;
+            if (y_nagativeRotation) delta = -delta;
+            euler.y_ += delta;
+            tNode_->SetRotation(urho3d::Quaternion(euler.x_, euler.y_, euler.z_));
+            lastRotationY_ = currentValue;
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%.2f", euler.y_);
+            y_RotationEdit->SetText(urho3d::String(buf));
+        }
+        else if (slider == z_RotationSlider)
+        {
+            float delta = currentValue - lastRotationZ_;
+            if (z_nagativeRotation) delta = -delta;
+            euler.z_ += delta;
+            tNode_->SetRotation(urho3d::Quaternion(euler.x_, euler.y_, euler.z_));
+            lastRotationZ_ = currentValue;
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%.2f", euler.z_);
+            z_RotationEdit->SetText(urho3d::String(buf));
         }
     }
 
@@ -785,13 +869,33 @@ public:
         lastScaleZ_ = z;
     }
 
+    void HandleRotationButtonApply(urho3d::StringHash eventType, urho3d::VariantMap& eventData)
+    {
+        if (!tNode_) return;
+        urho3d::String xtext = x_RotationEdit->GetText();
+        urho3d::String ytext = y_RotationEdit->GetText();
+        urho3d::String ztext = z_RotationEdit->GetText();
+
+        xtext.Replace(',', '.');
+        ytext.Replace(',', '.');
+        ztext.Replace(',', '.');
+
+        float x = xtext.Empty() ? 0.0f : atof(xtext.CString());
+        float y = ytext.Empty() ? 0.0f : atof(ytext.CString());
+        float z = ztext.Empty() ? 0.0f : atof(ztext.CString());
+
+        tNode_->SetRotation(urho3d::Quaternion(x, y, z));
+        lastRotationX_ = x;
+        lastRotationY_ = y;
+        lastRotationZ_ = z;
+    }
+
     void HandleUpdate(urho3d::StringHash eventType, urho3d::VariantMap& eventData)
     {
         using namespace urho3d::Update;
         float timeStep = eventData[P_TIMESTEP].GetFloat();
         if(mauseVisibility == true)
             MoveCamera(timeStep);
-
         if (GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_TAB))
         {
             mauseVisibility = !mauseVisibility;
@@ -800,7 +904,6 @@ public:
             GetSubsystem<urho3d::Input>()->SetMouseVisible(isVisible);
             GetSubsystem<urho3d::Input>()->SetMouseMode(isVisible ? urho3d::MM_FREE : urho3d::MM_RELATIVE);
         }
-
         demOfCurrPos->SetText("X: \t" + urho3d::String(cameraNode_->GetPosition().x_) +
             "\nY: \t" + urho3d::String(cameraNode_->GetPosition().y_) +
             "\nZ: \t" + urho3d::String(cameraNode_->GetPosition().z_) +
@@ -809,7 +912,6 @@ public:
         if (GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ESCAPE))
             engine_->Exit();
     }
-
     void Stop() override {}
 
 private:
@@ -826,7 +928,7 @@ private:
     urho3d::LineEdit* mdlLine_ = nullptr;
     urho3d::LineEdit* xmlLine_ = nullptr;
 
-    /*===MOVE===*/
+   /*===MOVE===*/
     urho3d::Slider* x_PosSlider = nullptr;
     urho3d::Slider* y_PosSlider = nullptr;
     urho3d::Slider* z_PosSlider = nullptr;
@@ -873,6 +975,30 @@ private:
 
     bool isProgrammaticChangeS = false;
    /*===SCALE===*/
+
+  /*===ROTATION===*/
+    urho3d::CheckBox* x_RotationNeg = nullptr;
+    urho3d::CheckBox* y_RotationNeg = nullptr;
+    urho3d::CheckBox* z_RotationNeg = nullptr;
+
+    urho3d::LineEdit* x_RotationEdit = nullptr;
+    urho3d::LineEdit* y_RotationEdit = nullptr;
+    urho3d::LineEdit* z_RotationEdit = nullptr;
+
+    urho3d::Slider* x_RotationSlider = nullptr;
+    urho3d::Slider* y_RotationSlider = nullptr;
+    urho3d::Slider* z_RotationSlider = nullptr;
+
+    bool x_nagativeRotation = false;
+    bool y_nagativeRotation = false;
+    bool z_nagativeRotation = false;
+
+    float lastRotationX_ = 0.0f;
+    float lastRotationY_ = 0.0f;
+    float lastRotationZ_ = 0.0f;
+
+    bool isProgrammaticChangeR = false;
+  /*===ROTATION===*/
 
     urho3d::Vector3 defaultObjPos    = { 0.0f, 0.0f, 0.0f };
     urho3d::Vector3 defaultСameraPos = { 0.0f, 0.0f, 0.0f };
