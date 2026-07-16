@@ -1,0 +1,7 @@
+<material>
+    <technique name="Techniques/Diff.xml" />
+    <texture unit="diffuse" name="Materials/BluePrintM/gridBlue+512.png" />
+    <parameter name="MatDiffColor" value="1 1 1 1" />
+    <parameter name="UOffset" value="10 0 0 0" />
+    <parameter name="VOffset" value="0 10 0 0" />
+</material>

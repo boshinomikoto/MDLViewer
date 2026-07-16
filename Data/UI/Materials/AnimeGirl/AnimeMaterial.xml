@@ -1,0 +1,5 @@
+<material>
+    <technique name="Techniques/Diff.xml" />
+    <texture unit="diffuse" name="Materials/AnimeGirl/anime_charac_tex.png" />
+    <parameter name="MatDiffColor" value="1 1 1 1" />
+</material>
