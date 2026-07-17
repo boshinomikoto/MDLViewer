@@ -100,7 +100,6 @@ public:
     void InitWindow()
     {
         window_ = MakeWindow("write a pth to .mdl and .xml", urho3d::HA_LEFT, urho3d::VA_TOP);
-
         panel_ = MakeWindow("Transform", urho3d::HA_RIGHT, urho3d::VA_TOP, 280);
     }
 
@@ -486,7 +485,7 @@ public:
         auto* ui = GetSubsystem<urho3d::UI>();
 
         auto* instructionText = ui->GetRoot()->CreateChild<urho3d::Text>();
-        instructionText->SetText("Use WASD keys and mouse/touch to move\n\tUse shift to inspect.\n\tX/Y/Z for positioning relative to an object along coordinate axes.");
+        instructionText->SetText("Use WASD keys and mouse/touch to move\n\tUse shift to inspect.\n\tX/Y/Z for positioning relative to an object along coordinate axes.\n\tQ/E to Up/Down");
         instructionText->SetFont(cache->GetResource<urho3d::Font>("Fonts/Anonymous Pro.ttf"), 15);
         instructionText->SetHorizontalAlignment(urho3d::HA_CENTER);
         instructionText->SetVerticalAlignment(urho3d::VA_CENTER);
@@ -529,7 +528,6 @@ public:
     void MoveCamera(float timeStep)
     {
         if (GetSubsystem<urho3d::UI>()->GetFocusElement()) return;
-
         auto* input = GetSubsystem<urho3d::Input>();
 
         float MOVE_SPEED        = 5.0f;
@@ -557,6 +555,9 @@ public:
         if (input->GetKeyDown(urho3d::KEY_S)) cameraNode_->Translate(urho3d::Vector3::BACK    * MOVE_SPEED * timeStep);
         if (input->GetKeyDown(urho3d::KEY_A)) cameraNode_->Translate(urho3d::Vector3::LEFT    * MOVE_SPEED * timeStep);
         if (input->GetKeyDown(urho3d::KEY_D)) cameraNode_->Translate(urho3d::Vector3::RIGHT   * MOVE_SPEED * timeStep);
+
+        if (input->GetKeyDown(urho3d::KEY_Q)) cameraNode_->Translate(urho3d::Vector3::UP   * MOVE_SPEED * timeStep);
+        if (input->GetKeyDown(urho3d::KEY_E)) cameraNode_->Translate(urho3d::Vector3::DOWN * MOVE_SPEED * timeStep);
     }
 
     void HandleMouseWheel(Urho3D::StringHash, Urho3D::VariantMap& eventData)
@@ -786,8 +787,7 @@ public:
         if (!tNode_) return;
         if (isProgrammaticChangeR) return;
 
-        auto* slider = static_cast<urho3d::Slider*>(
-            eventData[urho3d::SliderChanged::P_ELEMENT].GetPtr());
+        auto* slider = static_cast<urho3d::Slider*>(eventData[urho3d::SliderChanged::P_ELEMENT].GetPtr());
         float currentValue = eventData[urho3d::SliderChanged::P_VALUE].GetFloat();
 
         urho3d::Vector3 euler = tNode_->GetRotation().EulerAngles();
@@ -894,8 +894,7 @@ public:
     {
         using namespace urho3d::Update;
         float timeStep = eventData[P_TIMESTEP].GetFloat();
-        if(mauseVisibility == true)
-            MoveCamera(timeStep);
+        if(mauseVisibility == true) MoveCamera(timeStep);
         if (GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_TAB))
         {
             mauseVisibility = !mauseVisibility;
@@ -909,8 +908,7 @@ public:
             "\nZ: \t" + urho3d::String(cameraNode_->GetPosition().z_) +
             "\nyaw:\t" + urho3d::String(yaw_) + "\npitch:\t" + urho3d::String(pitch_));
 
-        if (GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ESCAPE))
-            engine_->Exit();
+        if (GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ESCAPE)) engine_->Exit();
     }
     void Stop() override {}
 
@@ -1002,10 +1000,12 @@ private:
 
     urho3d::Vector3 defaultObjPos    = { 0.0f, 0.0f, 0.0f };
     urho3d::Vector3 defaultСameraPos = { 0.0f, 0.0f, 0.0f };
-
     urho3d::Text* demOfCurrPos = nullptr;
 
     bool mauseVisibility = true;
 };
 URHO3D_DEFINE_APPLICATION_MAIN(StaticSceneApp)
 
+//движение вниз-верх по вертикали
+//скрывать текст
+//кнопки меню
