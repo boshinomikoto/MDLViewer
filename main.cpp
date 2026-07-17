@@ -484,12 +484,19 @@ public:
         auto* cache = GetSubsystem<urho3d::ResourceCache>();
         auto* ui = GetSubsystem<urho3d::UI>();
 
-        auto* instructionText = ui->GetRoot()->CreateChild<urho3d::Text>();
-        instructionText->SetText("Use WASD keys and mouse/touch to move\n\tUse shift to inspect.\n\tX/Y/Z for positioning relative to an object along coordinate axes.\n\tQ/E to Up/Down");
-        instructionText->SetFont(cache->GetResource<urho3d::Font>("Fonts/Anonymous Pro.ttf"), 15);
-        instructionText->SetHorizontalAlignment(urho3d::HA_CENTER);
-        instructionText->SetVerticalAlignment(urho3d::VA_CENTER);
-        instructionText->SetPosition(0, ui->GetRoot()->GetHeight() / 2.5);
+        instructionText_ = ui->GetRoot()->CreateChild<urho3d::Text>();
+        instructionText_->SetText(
+            "Use WASD keys and mouse/touch to move\n"
+            "Shift: slow\n"
+            "X/Y/Z: snap camera to axis\n"
+            "E/Q: up/down\n"
+            "Alt: toggle this help"
+        );
+        instructionText_->SetFont(
+            cache->GetResource<urho3d::Font>("Fonts/Anonymous Pro.ttf"), 15);
+        instructionText_->SetHorizontalAlignment(urho3d::HA_CENTER);
+        instructionText_->SetVerticalAlignment(urho3d::VA_CENTER);
+        instructionText_->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
     }
 
     void SetupViewport()
@@ -556,8 +563,8 @@ public:
         if (input->GetKeyDown(urho3d::KEY_A)) cameraNode_->Translate(urho3d::Vector3::LEFT    * MOVE_SPEED * timeStep);
         if (input->GetKeyDown(urho3d::KEY_D)) cameraNode_->Translate(urho3d::Vector3::RIGHT   * MOVE_SPEED * timeStep);
 
-        if (input->GetKeyDown(urho3d::KEY_Q)) cameraNode_->Translate(urho3d::Vector3::UP   * MOVE_SPEED * timeStep);
-        if (input->GetKeyDown(urho3d::KEY_E)) cameraNode_->Translate(urho3d::Vector3::DOWN * MOVE_SPEED * timeStep);
+        if (input->GetKeyDown(urho3d::KEY_Q)) cameraNode_->Translate(urho3d::Vector3::DOWN * MOVE_SPEED * timeStep);
+        if (input->GetKeyDown(urho3d::KEY_E)) cameraNode_->Translate(urho3d::Vector3::UP   * MOVE_SPEED * timeStep);
     }
 
     void HandleMouseWheel(Urho3D::StringHash, Urho3D::VariantMap& eventData)
@@ -903,6 +910,11 @@ public:
             GetSubsystem<urho3d::Input>()->SetMouseVisible(isVisible);
             GetSubsystem<urho3d::Input>()->SetMouseMode(isVisible ? urho3d::MM_FREE : urho3d::MM_RELATIVE);
         }
+        if (GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ALT))
+        {
+            instructionVisibility = !instructionVisibility;
+            instructionText_->SetVisible(instructionVisibility);
+        }
         demOfCurrPos->SetText("X: \t" + urho3d::String(cameraNode_->GetPosition().x_) +
             "\nY: \t" + urho3d::String(cameraNode_->GetPosition().y_) +
             "\nZ: \t" + urho3d::String(cameraNode_->GetPosition().z_) +
@@ -1003,6 +1015,9 @@ private:
     urho3d::Text* demOfCurrPos = nullptr;
 
     bool mauseVisibility = true;
+
+    urho3d::Text* instructionText_ = nullptr;
+    bool instructionVisibility = true;
 };
 URHO3D_DEFINE_APPLICATION_MAIN(StaticSceneApp)
 
