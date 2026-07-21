@@ -30,8 +30,17 @@
 #include <Urho3D/UI/UIElement.h>
 #include <Urho3D/UI/UIEvents.h>
 #include <Urho3D/UI/Window.h>
+#include <Urho3D/Physics/PhysicsWorld.h>
 #include <nfd.hpp>
 #include <stdlib.h>
+#include <Urho3D/Physics/CollisionShape.h>
+#include <Urho3D/Physics/RigidBody.h>
+#include <Urho3D/Graphics/DebugRenderer.h>
+#include <Urho3D/Graphics/Graphics.h>
+
+#include <Urho3D/UI/Cursor.h>
+#include <Urho3D/Resource/ResourceCache.h>
+#include <Urho3D/Resource/Image.h>
 
 namespace urho3d = Urho3D;
 
@@ -67,7 +76,8 @@ public:
 
         SubscribeToEvent(urho3d::E_UPDATE,     URHO3D_HANDLER(StaticSceneApp, HandleUpdate));
         SubscribeToEvent(urho3d::E_MOUSEWHEEL, URHO3D_HANDLER(StaticSceneApp, HandleMouseWheel));
-        SubscribeToEvent(urho3d::E_KEYDOWN,    URHO3D_HANDLER(StaticSceneApp, HandleCameraSetting));
+        SubscribeToEvent(urho3d::E_KEYDOWN, URHO3D_HANDLER(StaticSceneApp, HandleCameraSetting));
+        SubscribeToEvent(urho3d::E_POSTRENDERUPDATE, URHO3D_HANDLER(StaticSceneApp, HandleGeometryRender));
     }
 
     urho3d::Window* MakeWindow(const urho3d::String& title,
@@ -165,18 +175,6 @@ public:
                 return sl;
             };
 
-        //auto MakeCheckBox = [&](urho3d::UIElement* parent,
-        //    const urho3d::String& label,
-        //    bool checked = false) -> urho3d::CheckBox*
-        //    {
-        //        auto* row = MakeRow(parent);
-        //        auto* cb = row->CreateChild<urho3d::CheckBox>();
-        //        cb->SetStyleAuto();
-        //        cb->SetChecked(checked);
-        //        MakeLabel(row, label);
-        //        return cb;
-        //    };
-
         auto MakeCheckBoxInline = [&](urho3d::UIElement* parent,
             bool checked = false) -> urho3d::CheckBox*
             {
@@ -226,16 +224,6 @@ public:
                 auto* btn = MakeIconButton(row, folderTex);
                 return { edit, btn };
             };
-
-        //auto MakeSliderRow = [&](urho3d::UIElement* parent,
-        //    const urho3d::String& labelText,
-        //    float range, float value) -> urho3d::Slider*
-        //    {
-        //        auto* row = MakeRow(parent);
-        //        MakeLabel(row, labelText);
-
-        //        return MakeSlider(row, 200, 20, range, value);
-        //    };
 
         auto [ml, mb] = MakeBrowseRow(window_, "MDL:");
         auto [xl, xb] = MakeBrowseRow(window_, "XML:");
@@ -339,13 +327,16 @@ public:
         tNode_ = scene_->CreateChild("Object");
 
         urho3d::Vector3 spawnPos = defaultObjPos;
-        if (pathToMDL == "Models/Box.mdl")
-            spawnPos.y_ = 0.5f;
+        if (pathToMDL == "Models/Box.mdl") spawnPos.y_ = 0.5f;
         tNode_->SetPosition(spawnPos); 
 
         auto* tObject = tNode_->CreateComponent<urho3d::StaticModel>();
         tObject->SetModel(cache->GetResource<urho3d::Model>(pathToMDL));
         tObject->SetMaterial(cache->GetResource<urho3d::Material>(pathToXML));
+
+        tNode_->CreateComponent<urho3d::RigidBody>();
+        auto* shape = tNode_->CreateComponent<urho3d::CollisionShape>();
+        shape->SetTriangleMesh(tObject->GetModel());
         SetNormalizedScale(tNode_, 1.0f);
     }
     void SetupLight()
@@ -404,6 +395,9 @@ public:
         auto* cache = GetSubsystem<urho3d::ResourceCache>();
         scene_ = new urho3d::Scene(context_);
         scene_->CreateComponent<urho3d::Octree>();
+        scene_->CreateComponent<urho3d::PhysicsWorld>();
+        scene_->CreateComponent<urho3d::DebugRenderer>();
+  
         auto* ui = GetSubsystem<urho3d::UI>();
         SetupLight();
         ShowControlElements();
@@ -465,14 +459,9 @@ public:
         gridGeoGreen->SetMaterial(colorMatGreen);
     /*===========================*/
 
-
         if (mdlLine_->GetText().Empty())
         {
-            tNode_ = scene_->CreateChild("DefaultBox");
-
-            tNode_->SetPosition(urho3d::Vector3(0.0f, 0.5f, 0.0f));
-            auto* tObject = tNode_->CreateComponent<urho3d::StaticModel>();
-            tObject->SetModel(cache->GetResource<urho3d::Model>("Models/Box.mdl"));
+            loadMDLObject(cache, "", "Models/Box.mdl");
         }
         cameraNode_ = scene_->CreateChild("Camera");
         cameraNode_->CreateComponent<urho3d::Camera>();
@@ -490,10 +479,10 @@ public:
             "Shift: slow\n"
             "X/Y/Z: snap camera to axis\n"
             "E/Q: up/down\n"
+            "LBM: toggle debug geometry\n"
             "Alt: toggle this help"
         );
-        instructionText_->SetFont(
-            cache->GetResource<urho3d::Font>("Fonts/Anonymous Pro.ttf"), 15);
+        instructionText_->SetFont(cache->GetResource<urho3d::Font>("Fonts/Anonymous Pro.ttf"), 15);
         instructionText_->SetHorizontalAlignment(urho3d::HA_CENTER);
         instructionText_->SetVerticalAlignment(urho3d::VA_CENTER);
         instructionText_->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
@@ -509,6 +498,7 @@ public:
     void HandleCameraSetting(urho3d::StringHash eventType, urho3d::VariantMap& eventData)
     {
         if (!tNode_) return;
+        if (GetSubsystem<urho3d::UI>()->GetFocusElement()) return;
         int code = eventData[Urho3D::KeyDown::P_KEY].GetI32();
         urho3d::Vector3 objPos = tNode_->GetPosition();
 
@@ -756,7 +746,6 @@ public:
         float currentValue = eventData[urho3d::SliderChanged::P_VALUE].GetFloat();
 
         urho3d::Vector3 scale = tNode_->GetScale();
-        urho3d::Vector3 pos = tNode_->GetScale();
         if (slider == x_ScaleSlider)
         {
             float delta = currentValue - lastScaleX_;
@@ -896,13 +885,25 @@ public:
         lastRotationY_ = y;
         lastRotationZ_ = z;
     }
+    
+    urho3d::Node* PickObject(float maxDistance)
+    {
+        urho3d::Ray ray(cameraNode_->GetWorldPosition(), cameraNode_->GetWorldDirection());
+
+        urho3d::Vector<urho3d::RayQueryResult> results;
+        urho3d::RayOctreeQuery query(results, ray, urho3d::RAY_TRIANGLE, maxDistance, urho3d::DrawableTypes::Geometry);
+        scene_->GetComponent<urho3d::Octree>()->RaycastSingle(query);
+
+        return results.Empty() ? nullptr : results[0].drawable_->GetNode();
+    }
 
     void HandleUpdate(urho3d::StringHash eventType, urho3d::VariantMap& eventData)
     {
         using namespace urho3d::Update;
         float timeStep = eventData[P_TIMESTEP].GetFloat();
+        bool typing = GetSubsystem<urho3d::UI>()->GetFocusElement() != nullptr;
         if(mauseVisibility == true) MoveCamera(timeStep);
-        if (GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_TAB))
+        if (!typing && GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_TAB))
         {
             mauseVisibility = !mauseVisibility;
             bool isVisible = !GetSubsystem<urho3d::Input>()->IsMouseVisible();
@@ -910,10 +911,17 @@ public:
             GetSubsystem<urho3d::Input>()->SetMouseVisible(isVisible);
             GetSubsystem<urho3d::Input>()->SetMouseMode(isVisible ? urho3d::MM_FREE : urho3d::MM_RELATIVE);
         }
-        if (GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ALT))
+        if (!typing &&  GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ALT))
         {
             instructionVisibility = !instructionVisibility;
             instructionText_->SetVisible(instructionVisibility);
+        }
+
+        if (!typing && GetSubsystem<urho3d::Input>()->GetMouseButtonPress(urho3d::MOUSEB_LEFT))
+        {
+            urho3d::Node* clicked = PickObject(250.0f);
+            if(clicked) drawGeometry = !drawGeometry;
+           
         }
         demOfCurrPos->SetText("X: \t" + urho3d::String(cameraNode_->GetPosition().x_) +
             "\nY: \t" + urho3d::String(cameraNode_->GetPosition().y_) +
@@ -921,6 +929,13 @@ public:
             "\nyaw:\t" + urho3d::String(yaw_) + "\npitch:\t" + urho3d::String(pitch_));
 
         if (GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ESCAPE)) engine_->Exit();
+    }
+
+    void HandleGeometryRender(urho3d::StringHash eventType, urho3d::VariantMap& eventData)
+    {
+        if (!drawGeometry || !tNode_) return;
+        scene_->GetComponent<urho3d::PhysicsWorld>()->DrawDebugGeometry(true);
+
     }
     void Stop() override {}
 
@@ -1018,9 +1033,7 @@ private:
 
     urho3d::Text* instructionText_ = nullptr;
     bool instructionVisibility = true;
+
+    bool drawGeometry = false;
 };
 URHO3D_DEFINE_APPLICATION_MAIN(StaticSceneApp)
-
-//движение вниз-верх по вертикали
-//скрывать текст
-//кнопки меню
