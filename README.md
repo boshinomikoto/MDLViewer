@@ -11,7 +11,7 @@ A 3D model viewer built with Urho3D engine. Currently supports loading `.mdl` mo
 - Orbit camera with mouse, WASD movement, scroll zoom
 - Grid with highlighted X (red) and Z (green) axes
 
-![Preview](screenshots/164729.png)
+![Preview](screenshots/005628.png)
 ---
 
 ## About Urho3D
