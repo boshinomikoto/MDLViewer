@@ -66,7 +66,6 @@ public:
         InitWindow();
         InitControls();
         ShowGlobalValues();
-        //CreateUI();
         CreateScene();
         CreateInstructions();
         SetupViewport();
@@ -463,17 +462,6 @@ public:
         cameraNode_ = scene_->CreateChild("Camera");
         cameraNode_->CreateComponent<urho3d::Camera>();
         cameraNode_->SetPosition(urho3d::Vector3(0.0f, 0.5f, -3.0f));
-    }
-
-    void CreateUI()
-    {
-        auto* cache = GetSubsystem<urho3d::ResourceCache>();
-        auto* ui = GetSubsystem<urho3d::UI>();
-        auto* style = cache->GetResource<urho3d::XMLFile>("UI/DefaultStyle.xml");
-        urho3d::SharedPtr<urho3d::Cursor> cursor(new urho3d::Cursor(context_));
-        cursor->SetStyleAuto(style);
-        cursor->SetPosition(urho3d::VA_CENTER, urho3d::HA_CENTER);
-        ui->SetCursor(cursor);
     }
 
     void CreateInstructions()
