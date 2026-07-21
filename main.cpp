@@ -38,10 +38,6 @@
 #include <Urho3D/Graphics/DebugRenderer.h>
 #include <Urho3D/Graphics/Graphics.h>
 
-#include <Urho3D/UI/Cursor.h>
-#include <Urho3D/Resource/ResourceCache.h>
-#include <Urho3D/Resource/Image.h>
-
 namespace urho3d = Urho3D;
 
 class StaticSceneApp : public urho3d::Application
@@ -70,6 +66,7 @@ public:
         InitWindow();
         InitControls();
         ShowGlobalValues();
+        //CreateUI();
         CreateScene();
         CreateInstructions();
         SetupViewport();
@@ -466,6 +463,17 @@ public:
         cameraNode_ = scene_->CreateChild("Camera");
         cameraNode_->CreateComponent<urho3d::Camera>();
         cameraNode_->SetPosition(urho3d::Vector3(0.0f, 0.5f, -3.0f));
+    }
+
+    void CreateUI()
+    {
+        auto* cache = GetSubsystem<urho3d::ResourceCache>();
+        auto* ui = GetSubsystem<urho3d::UI>();
+        auto* style = cache->GetResource<urho3d::XMLFile>("UI/DefaultStyle.xml");
+        urho3d::SharedPtr<urho3d::Cursor> cursor(new urho3d::Cursor(context_));
+        cursor->SetStyleAuto(style);
+        cursor->SetPosition(urho3d::VA_CENTER, urho3d::HA_CENTER);
+        ui->SetCursor(cursor);
     }
 
     void CreateInstructions()
@@ -902,7 +910,7 @@ public:
         using namespace urho3d::Update;
         float timeStep = eventData[P_TIMESTEP].GetFloat();
         bool typing = GetSubsystem<urho3d::UI>()->GetFocusElement() != nullptr;
-        if(mauseVisibility == true) MoveCamera(timeStep);
+        if(mauseVisibility == false) MoveCamera(timeStep);
         if (!typing && GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_TAB))
         {
             mauseVisibility = !mauseVisibility;
@@ -910,14 +918,15 @@ public:
 
             GetSubsystem<urho3d::Input>()->SetMouseVisible(isVisible);
             GetSubsystem<urho3d::Input>()->SetMouseMode(isVisible ? urho3d::MM_FREE : urho3d::MM_RELATIVE);
+            
         }
-        if (!typing &&  GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ALT))
+        if (!typing && GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ALT))
         {
             instructionVisibility = !instructionVisibility;
             instructionText_->SetVisible(instructionVisibility);
         }
 
-        if (!typing && GetSubsystem<urho3d::Input>()->GetMouseButtonPress(urho3d::MOUSEB_LEFT))
+        if (!typing && !mauseVisibility && GetSubsystem<urho3d::Input>()->GetMouseButtonPress(urho3d::MOUSEB_LEFT))
         {
             urho3d::Node* clicked = PickObject(250.0f);
             if(clicked) drawGeometry = !drawGeometry;
@@ -1029,7 +1038,7 @@ private:
     urho3d::Vector3 defaultСameraPos = { 0.0f, 0.0f, 0.0f };
     urho3d::Text* demOfCurrPos = nullptr;
 
-    bool mauseVisibility = true;
+    bool mauseVisibility = false;
 
     urho3d::Text* instructionText_ = nullptr;
     bool instructionVisibility = true;
