@@ -37,6 +37,9 @@
 #include <Urho3D/Physics/RigidBody.h>
 #include <Urho3D/Graphics/DebugRenderer.h>
 #include <Urho3D/Graphics/Graphics.h>
+#include <Urho3D/Graphics/Geometry.h>
+#include <Urho3D/GraphicsAPI/VertexBuffer.h>
+#include <Urho3D/GraphicsAPI/IndexBuffer.h>
 
 namespace urho3d = Urho3D;
 
@@ -229,6 +232,9 @@ public:
         auto* loadBtn = MakeButton(window_, "Load", 170, 30);
         loadBtn->SetAlignment(urho3d::HA_CENTER, urho3d::VA_TOP);
 
+        auto* deleteBtn = MakeButton(window_, "Delete", 170, 30);
+        deleteBtn->SetAlignment(urho3d::HA_CENTER, urho3d::VA_TOP);
+
         //── Panel ─────────────────────────────────────────────
         MakeLabel(panel_, "\nLocation");
         std::tie(x_Neg, x_Edit, x_PosSlider) = MakeAxisRow(panel_, " X", 25.0f, 0.5f);
@@ -256,6 +262,9 @@ public:
         SubscribeToEvent(loadBtn, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleButtonPress));
         SubscribeToEvent(mb,      urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleMDLButtonPress));
         SubscribeToEvent(xb,      urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleXMLButtonPress));
+
+        SubscribeToEvent(deleteBtn, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleDeleteButtonPress));
+
 
         //pos
         SubscribeToEvent(x_Neg,          urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
@@ -316,24 +325,24 @@ public:
             node->SetScale(scale);
         }
     }
-
-    void loadMDLObject(urho3d::ResourceCache* cache, urho3d::String pathToXML, urho3d::String pathToMDL)
+    urho3d::Node* loadMDLObject(urho3d::ResourceCache* cache, urho3d::String pathToXML, urho3d::String pathToMDL)
     {
-        if (!cache) return;
-        tNode_ = scene_->CreateChild("Object");
-
+        if (!cache) return nullptr;
+        urho3d::Node* node = scene_->CreateChild("Object");
         urho3d::Vector3 spawnPos = defaultObjPos;
         if (pathToMDL == "Models/Box.mdl") spawnPos.y_ = 0.5f;
-        tNode_->SetPosition(spawnPos); 
+        node->SetPosition(spawnPos);
 
-        auto* tObject = tNode_->CreateComponent<urho3d::StaticModel>();
+        auto* tObject = node->CreateComponent<urho3d::StaticModel>();
         tObject->SetModel(cache->GetResource<urho3d::Model>(pathToMDL));
         tObject->SetMaterial(cache->GetResource<urho3d::Material>(pathToXML));
 
-        tNode_->CreateComponent<urho3d::RigidBody>();
-        auto* shape = tNode_->CreateComponent<urho3d::CollisionShape>();
+        node->CreateComponent<urho3d::RigidBody>();
+        auto* shape = node->CreateComponent<urho3d::CollisionShape>();
         shape->SetTriangleMesh(tObject->GetModel());
-        SetNormalizedScale(tNode_, 1.0f);
+        SetNormalizedScale(node, 1.0f);
+
+        return node;
     }
     void SetupLight()
     {
@@ -457,7 +466,12 @@ public:
 
         if (mdlLine_->GetText().Empty())
         {
-            loadMDLObject(cache, "", "Models/Box.mdl");
+            urho3d::Node* box = loadMDLObject(cache, "", "Models/Box.mdl");
+            if (box) 
+            { 
+                objects_.Push({ urho3d::SharedPtr<urho3d::Node>(box), false });
+                tNode_ = box; 
+            }
         }
         cameraNode_ = scene_->CreateChild("Camera");
         cameraNode_->CreateComponent<urho3d::Camera>();
@@ -559,20 +573,38 @@ public:
         cameraNode_->Translate(Urho3D::Vector3(0.0f, 0.0f, wheel * 0.5f));
     }
 
+    void HandleDeleteButtonPress(urho3d::StringHash, urho3d::VariantMap& eventData)
+    {
+        if (!tNode_) return;
+        unsigned i = 0;
+        bool notexist = true;
+        do
+        {
+            if (objects_[i].node == tNode_ && objects_[i].drawGeometry == true)
+            {
+                objects_.Erase(i);
+                tNode_->Remove();
+                tNode_ = nullptr;
+                break;
+            }
+            ++i;
+            if (i == objects_.Size()) notexist = false;
+        } while (notexist);
+    }
+
     void HandleButtonPress(urho3d::StringHash, urho3d::VariantMap&)
     {
-        if (tNode_)
-        {
-            tNode_->Remove();
-            tNode_ = nullptr;
-        }
-        cameraNode_->SetPosition(urho3d::Vector3(0.0f, 0.5f, -3.0f)); 
-        yaw_ = 0.0f;
-        pitch_ = 0.0f;
-
         urho3d::String mdlPath = mdlLine_->GetText().Empty() ? "Models/Box.mdl" : mdlLine_->GetText();
         urho3d::String xmlPath = xmlLine_->GetText();
-        loadMDLObject(GetSubsystem<urho3d::ResourceCache>(), xmlPath, mdlPath);
+        urho3d::Node* newNode = loadMDLObject(GetSubsystem<urho3d::ResourceCache>(), xmlPath, mdlPath);
+        if (newNode)
+        {
+            objects_.Push({ urho3d::SharedPtr<urho3d::Node>(newNode), false });
+            tNode_ = newNode;
+        }
+        cameraNode_->SetPosition(urho3d::Vector3(0.0f, 0.5f, -3.0f));
+        yaw_ = 0.0f;
+        pitch_ = 0.0f;
     }
 
     void HandleMDLButtonPress(urho3d::StringHash, urho3d::VariantMap&)
@@ -905,8 +937,7 @@ public:
             bool isVisible = !GetSubsystem<urho3d::Input>()->IsMouseVisible();
 
             GetSubsystem<urho3d::Input>()->SetMouseVisible(isVisible);
-            GetSubsystem<urho3d::Input>()->SetMouseMode(isVisible ? urho3d::MM_FREE : urho3d::MM_RELATIVE);
-            
+            GetSubsystem<urho3d::Input>()->SetMouseMode(isVisible ? urho3d::MM_FREE : urho3d::MM_RELATIVE); 
         }
         if (!typing && GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ALT))
         {
@@ -917,8 +948,18 @@ public:
         if (!typing && !mauseVisibility && GetSubsystem<urho3d::Input>()->GetMouseButtonPress(urho3d::MOUSEB_LEFT))
         {
             urho3d::Node* clicked = PickObject(250.0f);
-            if(clicked) drawGeometry = !drawGeometry;
-           
+            if (clicked && clicked->GetName() == "Object")
+            {
+                tNode_ = clicked;
+                for (auto& obj : objects_)
+                {
+                    if (obj.node == clicked)
+                    {
+                        obj.drawGeometry = !obj.drawGeometry;
+                        break;
+                    }
+                }
+            }
         }
         demOfCurrPos->SetText("X: \t" + urho3d::String(cameraNode_->GetPosition().x_) +
             "\nY: \t" + urho3d::String(cameraNode_->GetPosition().y_) +
@@ -928,16 +969,53 @@ public:
         if (GetSubsystem<urho3d::Input>()->GetKeyPress(urho3d::KEY_ESCAPE)) engine_->Exit();
     }
 
-    void HandleGeometryRender(urho3d::StringHash eventType, urho3d::VariantMap& eventData)
+    void HandleGeometryRender(urho3d::StringHash, urho3d::VariantMap&)
     {
-        if (!drawGeometry || !tNode_) return;
-        scene_->GetComponent<urho3d::PhysicsWorld>()->DrawDebugGeometry(true);
+        auto* debug = scene_->GetComponent<urho3d::DebugRenderer>();
+        if (!debug) return;
 
+        for (auto& obj : objects_)
+        {
+            if (!obj.drawGeometry || !obj.node) continue;
+
+            auto* staticModel = obj.node->GetComponent<urho3d::StaticModel>();
+            auto* model = staticModel ? staticModel->GetModel() : nullptr;
+            if (!model) continue;
+
+            urho3d::Geometry* geom = model->GetGeometry(0, 0);
+            if (!geom) continue;
+
+            auto* vb = geom->GetVertexBuffer(0);
+            auto* ib = geom->GetIndexBuffer();
+            if (!vb || !ib) continue;
+
+            const unsigned char* vertexData = reinterpret_cast<const unsigned char*>(vb->GetShadowData());
+            const unsigned char* indexData = reinterpret_cast<const unsigned char*>(ib->GetShadowData());
+            if (!vertexData || !indexData) continue;
+
+            debug->AddTriangleMesh(
+                vertexData, vb->GetVertexSize(),
+                indexData,  ib->GetIndexSize(),
+                geom->GetIndexStart(), geom->GetIndexCount(),
+                obj.node->GetWorldTransform(),
+                urho3d::Color(1.0f, 0.6f, 0.0f),
+                true);
+        }
     }
+
     void Stop() override {}
 
 private:
     urho3d::Node* tNode_ = nullptr;
+
+    struct SceneObject
+    {
+        urho3d::SharedPtr<urho3d::Node> node;
+        bool drawGeometry = false;
+    };
+
+    urho3d::Vector<SceneObject> objects_;
+
     urho3d::SharedPtr<urho3d::Scene> scene_;
     urho3d::Node* cameraNode_ = nullptr;
     float yaw_   = 0.0f;
@@ -1030,7 +1108,5 @@ private:
 
     urho3d::Text* instructionText_ = nullptr;
     bool instructionVisibility = true;
-
-    bool drawGeometry = false;
 };
 URHO3D_DEFINE_APPLICATION_MAIN(StaticSceneApp)
