@@ -111,6 +111,7 @@ public:
     {
         window_ = MakeWindow("write a pth to .mdl and .xml", urho3d::HA_LEFT, urho3d::VA_TOP);
         panel_ = MakeWindow("Transform", urho3d::HA_RIGHT, urho3d::VA_TOP, 280);
+        colorPanel_ = MakeWindow("Color", urho3d::HA_RIGHT, urho3d::VA_BOTTOM, 500);
     }
 
     void InitControls()
@@ -200,6 +201,19 @@ public:
                 return { cb, edit, sl };
             };
 
+        auto MakeAxisColorRow = [&](urho3d::UIElement* parent,
+            const urho3d::String& labelText,
+            float range, float value)
+            -> std::tuple<urho3d::LineEdit*, urho3d::Slider*>
+            {
+                auto* row = MakeRow(parent);
+                auto* lbl = MakeLabel(row, labelText, 15);
+                lbl->SetMinWidth(15);
+                auto* edit = MakeLineEdit(row, 55, 25);
+                auto* sl = MakeSlider(row, 570, 25, range, value);
+                return {edit, sl };
+            };
+
         auto MakeIconButton = [&](urho3d::UIElement* parent,
             urho3d::Texture2D* tex,
             int size = 24) -> urho3d::Button*
@@ -247,8 +261,17 @@ public:
         xmlLine_ = xl;
 
         auto* deleteBtn = MakeButton(window_, "Delete", 170, 30);
-        auto* loadBtn = MakeButton(window_, "Load", 170, 30);
+        auto* loadBtn   = MakeButton(window_, "Load",   170, 30);
         MakeButtonRow(window_, { deleteBtn, loadBtn });
+
+        //── Color Panel ─────────────────────────────────────────────
+        MakeLabel (colorPanel_, "\nRGBA");
+        std::tie(r_Edit, r_Slider) = MakeAxisColorRow(colorPanel_, "R", 100.f, 0.f);
+        std::tie(g_Edit, g_Slider) = MakeAxisColorRow(colorPanel_, "G", 100.f, 0.f);
+        std::tie(b_Edit, b_Slider) = MakeAxisColorRow(colorPanel_, "B", 100.f, 0.f);
+        //std::tie(a_Edit, a_Slider) = MakeAxisColorRow(colorPanel_, "A", 100.f, 0.f);
+        auto* colorButtonApply = MakeButton(colorPanel_, "Apply", 170, 30);
+        colorButtonApply->SetAlignment(urho3d::HA_CENTER, urho3d::VA_TOP);
 
         //── Transform Panel ─────────────────────────────────────────────
         MakeLabel(panel_, "\nLocation");
@@ -277,8 +300,10 @@ public:
         SubscribeToEvent(loadBtn, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleButtonPress));
         SubscribeToEvent(mb,      urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleMDLButtonPress));
         SubscribeToEvent(xb,      urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleXMLButtonPress));
-
+ 
+        //delete
         SubscribeToEvent(deleteBtn, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleDeleteButtonPress));
+
 
         //pos
         SubscribeToEvent(x_Neg,          urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
@@ -288,7 +313,7 @@ public:
         SubscribeToEvent(y_PosSlider,    urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleTransform));
         SubscribeToEvent(z_PosSlider,    urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleTransform));
 
-        SubscribeToEvent(locButtonApply, urho3d::E_RELEASED,      URHO3D_HANDLER(StaticSceneApp, HandleLocationButtonApply));
+        SubscribeToEvent(locButtonApply, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleLocationButtonApply));
 
         //scale
         SubscribeToEvent(x_ScaleNeg,    urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
@@ -309,6 +334,15 @@ public:
         SubscribeToEvent(z_RotationSlider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleRotationTransform));
 
         SubscribeToEvent(rotationButtonApply, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleRotationButtonApply));
+
+        //color
+        SubscribeToEvent(r_Slider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleColorTransform));
+        SubscribeToEvent(g_Slider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleColorTransform));
+        SubscribeToEvent(b_Slider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleColorTransform));
+        //SubscribeToEvent(a_Slider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleColorTransform));
+
+        SubscribeToEvent(colorButtonApply, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleColorButtonApply));
+
     }
 
     void ShowGlobalValues()
@@ -339,7 +373,13 @@ public:
             node->SetScale(scale);
         }
     }
-    urho3d::Node* loadMDLObject(urho3d::ResourceCache* cache, urho3d::String pathToXML, urho3d::String pathToMDL)
+
+    /*
+    If you load an object using the Load button with a real XML material specified, 
+    the color will change—the bug was specifically in the default object without a material. 
+    That's why I don't pass an empty string to SetMaterial, but substitute the real material from CoreData.
+     */
+    urho3d::Node* StaticSceneApp::loadMDLObject(urho3d::ResourceCache* cache, urho3d::String pathToXML, urho3d::String pathToMDL)
     {
         if (!cache) return nullptr;
         urho3d::Node* node = scene_->CreateChild("Object");
@@ -349,13 +389,14 @@ public:
 
         auto* tObject = node->CreateComponent<urho3d::StaticModel>();
         tObject->SetModel(cache->GetResource<urho3d::Model>(pathToMDL));
-        tObject->SetMaterial(cache->GetResource<urho3d::Material>(pathToXML));
 
+        urho3d::Material* material = pathToXML.Empty() ? cache->GetResource<urho3d::Material>("Materials/DefaultGrey.xml") //fix
+                                                       : cache->GetResource<urho3d::Material>(pathToXML);
+        tObject->SetMaterial(material);
         node->CreateComponent<urho3d::RigidBody>();
         auto* shape = node->CreateComponent<urho3d::CollisionShape>();
         shape->SetTriangleMesh(tObject->GetModel());
         SetNormalizedScale(node, 1.0f);
-
         return node;
     }
     void SetupLight()
@@ -504,6 +545,7 @@ public:
             "X/Y/Z: snap camera to axis\n"
             "E/Q: up/down\n"
             "LBM: toggle debug geometry\n"
+            "DEL: delete object\n"
             "Alt: toggle this help"
         );
         instructionText_->SetFont(cache->GetResource<urho3d::Font>("Fonts/Anonymous Pro.ttf"), 15);
@@ -576,9 +618,8 @@ public:
         if (input->GetKeyDown(urho3d::KEY_S)) cameraNode_->Translate(urho3d::Vector3::BACK    * MOVE_SPEED * timeStep);
         if (input->GetKeyDown(urho3d::KEY_A)) cameraNode_->Translate(urho3d::Vector3::LEFT    * MOVE_SPEED * timeStep);
         if (input->GetKeyDown(urho3d::KEY_D)) cameraNode_->Translate(urho3d::Vector3::RIGHT   * MOVE_SPEED * timeStep);
-
-        if (input->GetKeyDown(urho3d::KEY_Q)) cameraNode_->Translate(urho3d::Vector3::DOWN * MOVE_SPEED * timeStep);
-        if (input->GetKeyDown(urho3d::KEY_E)) cameraNode_->Translate(urho3d::Vector3::UP   * MOVE_SPEED * timeStep);
+        if (input->GetKeyDown(urho3d::KEY_Q)) cameraNode_->Translate(urho3d::Vector3::DOWN    * MOVE_SPEED * timeStep);
+        if (input->GetKeyDown(urho3d::KEY_E)) cameraNode_->Translate(urho3d::Vector3::UP      * MOVE_SPEED * timeStep);
     }
 
     void HandleMouseWheel(Urho3D::StringHash, Urho3D::VariantMap& eventData)
@@ -586,7 +627,6 @@ public:
         float wheel = eventData[Urho3D::MouseWheel::P_WHEEL].GetFloat();
         cameraNode_->Translate(Urho3D::Vector3(0.0f, 0.0f, wheel * 0.5f));
     }
-
 
     void TakenOutFuncForDeletObj()
     {
@@ -630,8 +670,6 @@ public:
             objects_.Push({ urho3d::SharedPtr<urho3d::Node>(newNode), false });
             tNode_ = newNode;
         }
-
-
     }
 
     void HandleMDLButtonPress(urho3d::StringHash, urho3d::VariantMap&)
@@ -878,6 +916,48 @@ public:
         }
     }
 
+    void HandleColorTransform(Urho3D::StringHash, Urho3D::VariantMap& eventData)
+    {
+        if (!tNode_) return;
+        if (isProgrammaticChange) return;
+
+        auto* slider = static_cast<urho3d::Slider*>(eventData[urho3d::SliderChanged::P_ELEMENT].GetPtr());
+        float currentValue = eventData[urho3d::SliderChanged::P_VALUE].GetFloat();
+
+        float normalizedVal = currentValue / 100.f;
+
+        if (slider == r_Slider)
+        {
+            color.x_ = normalizedVal;
+
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%.2f", currentValue * 2.55f);
+            r_Edit->SetText(urho3d::String(buf));
+        }
+        else if (slider == g_Slider)
+        {
+            color.y_ = normalizedVal;
+
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%.2f", currentValue * 2.55f);
+            g_Edit->SetText(urho3d::String(buf));
+        }
+        else if (slider == b_Slider)
+        {
+            color.z_ = normalizedVal; 
+
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%.2f", currentValue * 2.55f);
+            b_Edit->SetText(urho3d::String(buf));
+        }
+
+        auto* staticModel = tNode_->GetComponent<urho3d::StaticModel>();
+        if (staticModel && staticModel->GetMaterial(0))
+        {
+            staticModel->GetMaterial(0)->SetShaderParameter("MatDiffColor", urho3d::Color(color.x_, color.y_, color.z_));
+        }
+    }
+
     void HandleLocationButtonApply(urho3d::StringHash eventType, urho3d::VariantMap& eventData)
     {
         if (!tNode_) return;
@@ -940,7 +1020,38 @@ public:
         lastRotationY_ = y;
         lastRotationZ_ = z;
     }
-    
+
+    void HandleColorButtonApply(urho3d::StringHash eventType, urho3d::VariantMap& eventData)
+    {
+        if (!tNode_) return;
+        urho3d::String xtext = r_Edit->GetText();
+        urho3d::String ytext = g_Edit->GetText();
+        urho3d::String ztext = b_Edit->GetText();
+
+        xtext.Replace(',', '.');
+        ytext.Replace(',', '.');
+        ztext.Replace(',', '.');
+
+        float x = xtext.Empty() ? 0.0f : atof(xtext.CString());
+        float y = ytext.Empty() ? 0.0f : atof(ytext.CString());
+        float z = ztext.Empty() ? 0.0f : atof(ztext.CString());
+
+        r_Slider->SetValue(x);
+        g_Slider->SetValue(y);
+        b_Slider->SetValue(z);
+
+        color.x_ = x / 255.0f;
+        color.y_ = y / 255.0f;
+        color.z_ = z / 255.0f;
+
+        auto* staticModel = tNode_->GetComponent<urho3d::StaticModel>();
+        if (staticModel && staticModel->GetMaterial(0))
+        {
+            staticModel->GetMaterial(0)->SetShaderParameter("MatDiffColor", urho3d::Color(color.x_, color.y_, color.z_));
+        }
+
+    }
+
     urho3d::Node* PickObject(float maxDistance)
     {
         urho3d::Ray ray(cameraNode_->GetWorldPosition(), cameraNode_->GetWorldDirection());
@@ -1055,6 +1166,7 @@ private:
 
     urho3d::Window* window_ = nullptr;
     urho3d::Window* panel_  = nullptr;  
+    urho3d::Window* colorPanel_  = nullptr;  
     urho3d::SharedPtr<urho3d::UIElement> uiRoot_;
 
     urho3d::LineEdit* mdlLine_ = nullptr;
@@ -1132,6 +1244,25 @@ private:
     bool isProgrammaticChangeR = false;
   /*===ROTATION===*/
 
+  /*===COLOR===*/
+    urho3d::LineEdit* r_Edit = nullptr;
+    urho3d::LineEdit* g_Edit = nullptr;
+    urho3d::LineEdit* b_Edit = nullptr;
+    //urho3d::LineEdit* a_Edit = nullptr;
+    urho3d::Slider* r_Slider = nullptr;
+    urho3d::Slider* g_Slider = nullptr;
+    urho3d::Slider* b_Slider = nullptr;
+    //urho3d::Slider* a_Slider = nullptr;
+
+
+    float lastR_ = 0.0f;
+    float lastG_ = 0.0f;
+    float lastB_ = 0.0f;
+   // float lastA_ = 0.0f;
+
+    urho3d::Vector3 color = { 0.0f, 0.0f, 0.0f };
+  /*===COLOR===*/
+
     urho3d::Vector3 defaultObjPos    = { 0.0f, 0.0f, 0.0f };
     urho3d::Vector3 defaultСameraPos = { 0.0f, 0.0f, 0.0f };
     urho3d::Text* demOfCurrPos = nullptr;
@@ -1142,3 +1273,4 @@ private:
     bool instructionVisibility = true;
 };
 URHO3D_DEFINE_APPLICATION_MAIN(StaticSceneApp)
+
