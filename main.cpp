@@ -929,7 +929,6 @@ public:
         if (slider == r_Slider)
         {
             color.x_ = normalizedVal;
-
             char buf[16];
             snprintf(buf, sizeof(buf), "%.2f", currentValue * 2.55f);
             r_Edit->SetText(urho3d::String(buf));
@@ -937,7 +936,6 @@ public:
         else if (slider == g_Slider)
         {
             color.y_ = normalizedVal;
-
             char buf[16];
             snprintf(buf, sizeof(buf), "%.2f", currentValue * 2.55f);
             g_Edit->SetText(urho3d::String(buf));
@@ -945,7 +943,6 @@ public:
         else if (slider == b_Slider)
         {
             color.z_ = normalizedVal; 
-
             char buf[16];
             snprintf(buf, sizeof(buf), "%.2f", currentValue * 2.55f);
             b_Edit->SetText(urho3d::String(buf));
@@ -953,7 +950,6 @@ public:
         else if (slider == a_Slider)
         {
             color.w_ = normalizedVal;
-
             char buf[16];
             snprintf(buf, sizeof(buf), "%.2f", currentValue);
             a_Edit->SetText(urho3d::String(buf));
@@ -1267,12 +1263,6 @@ private:
     urho3d::Slider* g_Slider = nullptr;
     urho3d::Slider* b_Slider = nullptr;
     urho3d::Slider* a_Slider = nullptr;
-
-
-    float lastR_ = 0.0f;
-    float lastG_ = 0.0f;
-    float lastB_ = 0.0f;
-    float lastA_ = 0.0f;
 
     urho3d::Vector4 color = { 0.0f, 0.0f, 0.0f, 1.0f };
   /*===COLOR===*/
