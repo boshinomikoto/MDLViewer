@@ -269,7 +269,7 @@ public:
         std::tie(r_Edit, r_Slider) = MakeAxisColorRow(colorPanel_, "R", 100.f, 0.f);
         std::tie(g_Edit, g_Slider) = MakeAxisColorRow(colorPanel_, "G", 100.f, 0.f);
         std::tie(b_Edit, b_Slider) = MakeAxisColorRow(colorPanel_, "B", 100.f, 0.f);
-        //std::tie(a_Edit, a_Slider) = MakeAxisColorRow(colorPanel_, "A", 100.f, 0.f);
+        std::tie(a_Edit, a_Slider) = MakeAxisColorRow(colorPanel_, "A", 100.f, 0.f);
         auto* colorButtonApply = MakeButton(colorPanel_, "Apply", 170, 30);
         colorButtonApply->SetAlignment(urho3d::HA_CENTER, urho3d::VA_TOP);
 
@@ -339,7 +339,7 @@ public:
         SubscribeToEvent(r_Slider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleColorTransform));
         SubscribeToEvent(g_Slider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleColorTransform));
         SubscribeToEvent(b_Slider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleColorTransform));
-        //SubscribeToEvent(a_Slider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleColorTransform));
+        SubscribeToEvent(a_Slider, urho3d::E_SLIDERCHANGED, URHO3D_HANDLER(StaticSceneApp, HandleColorTransform));
 
         SubscribeToEvent(colorButtonApply, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleColorButtonApply));
 
@@ -950,11 +950,21 @@ public:
             snprintf(buf, sizeof(buf), "%.2f", currentValue * 2.55f);
             b_Edit->SetText(urho3d::String(buf));
         }
+        else if (slider == a_Slider)
+        {
+            color.w_ = normalizedVal;
+
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%.2f", currentValue);
+            a_Edit->SetText(urho3d::String(buf));
+        }
 
         auto* staticModel = tNode_->GetComponent<urho3d::StaticModel>();
         if (staticModel && staticModel->GetMaterial(0))
         {
-            staticModel->GetMaterial(0)->SetShaderParameter("MatDiffColor", urho3d::Color(color.x_, color.y_, color.z_));
+            auto* mat = staticModel->GetMaterial(0);
+            mat->SetTechnique(0, GetSubsystem<urho3d::ResourceCache>()->GetResource<urho3d::Technique>("Techniques/NoTextureAlpha.xml"));
+            mat->SetShaderParameter("MatDiffColor", urho3d::Color(color.x_, color.y_, color.z_, color.w_));
         }
     }
 
@@ -969,9 +979,9 @@ public:
         ytext.Replace(',', '.');
         ztext.Replace(',', '.');
 
-        float x = atof(xtext.CString());
+        float x = xtext.Empty() ? 0.0f : atof(xtext.CString());
         float y = ytext.Empty() ? 0.5f : atof(ytext.CString());
-        float z = atof(ztext.CString());
+        float z = xtext.Empty() ? 0.0f : atof(ztext.CString());
 
         tNode_->SetPosition(urho3d::Vector3(x, y, z));
         lastX_ = x;
@@ -1027,29 +1037,33 @@ public:
         urho3d::String xtext = r_Edit->GetText();
         urho3d::String ytext = g_Edit->GetText();
         urho3d::String ztext = b_Edit->GetText();
+        urho3d::String wtext = a_Edit->GetText();
 
         xtext.Replace(',', '.');
         ytext.Replace(',', '.');
         ztext.Replace(',', '.');
+        wtext.Replace(',', '.');
 
-        float x = xtext.Empty() ? 0.0f : atof(xtext.CString());
-        float y = ytext.Empty() ? 0.0f : atof(ytext.CString());
-        float z = ztext.Empty() ? 0.0f : atof(ztext.CString());
+        float x = xtext.Empty() ? 255.0f : atof(xtext.CString());
+        float y = ytext.Empty() ? 255.0f : atof(ytext.CString());
+        float z = ztext.Empty() ? 255.0f : atof(ztext.CString());
+        float w = wtext.Empty() ? 100.0f : atof(wtext.CString());
 
         r_Slider->SetValue(x);
         g_Slider->SetValue(y);
         b_Slider->SetValue(z);
+        a_Slider->SetValue(w);
 
         color.x_ = x / 255.0f;
         color.y_ = y / 255.0f;
         color.z_ = z / 255.0f;
+        color.w_ = w / 100.0f;
 
         auto* staticModel = tNode_->GetComponent<urho3d::StaticModel>();
         if (staticModel && staticModel->GetMaterial(0))
         {
-            staticModel->GetMaterial(0)->SetShaderParameter("MatDiffColor", urho3d::Color(color.x_, color.y_, color.z_));
+            staticModel->GetMaterial(0)->SetShaderParameter("MatDiffColor", urho3d::Color(color.x_, color.y_, color.z_, color.w_));
         }
-
     }
 
     urho3d::Node* PickObject(float maxDistance)
@@ -1248,19 +1262,19 @@ private:
     urho3d::LineEdit* r_Edit = nullptr;
     urho3d::LineEdit* g_Edit = nullptr;
     urho3d::LineEdit* b_Edit = nullptr;
-    //urho3d::LineEdit* a_Edit = nullptr;
+    urho3d::LineEdit* a_Edit = nullptr;
     urho3d::Slider* r_Slider = nullptr;
     urho3d::Slider* g_Slider = nullptr;
     urho3d::Slider* b_Slider = nullptr;
-    //urho3d::Slider* a_Slider = nullptr;
+    urho3d::Slider* a_Slider = nullptr;
 
 
     float lastR_ = 0.0f;
     float lastG_ = 0.0f;
     float lastB_ = 0.0f;
-   // float lastA_ = 0.0f;
+    float lastA_ = 0.0f;
 
-    urho3d::Vector3 color = { 0.0f, 0.0f, 0.0f };
+    urho3d::Vector4 color = { 0.0f, 0.0f, 0.0f, 1.0f };
   /*===COLOR===*/
 
     urho3d::Vector3 defaultObjPos    = { 0.0f, 0.0f, 0.0f };
