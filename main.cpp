@@ -54,7 +54,7 @@ public:
     {
         engineParameters_[urho3d::EP_WINDOW_TITLE]   = "ModelsViewer";
         engineParameters_[urho3d::EP_WINDOW_WIDTH]   = 1920;
-        engineParameters_[urho3d::EP_WINDOW_HEIGHT]  = 1080;
+        engineParameters_[urho3d::EP_WINDOW_HEIGHT]  = 1070;
         engineParameters_[urho3d::EP_FULL_SCREEN]    = false;
         engineParameters_[Urho3D::EP_MULTI_SAMPLE]   = 4;
         engineParameters_[urho3d::EP_RESOURCE_PATHS] = "Data;CoreData";
@@ -74,9 +74,9 @@ public:
         CreateInstructions();
         SetupViewport();
 
-        SubscribeToEvent(urho3d::E_UPDATE,     URHO3D_HANDLER(StaticSceneApp, HandleUpdate));
-        SubscribeToEvent(urho3d::E_MOUSEWHEEL, URHO3D_HANDLER(StaticSceneApp, HandleMouseWheel));
-        SubscribeToEvent(urho3d::E_KEYDOWN, URHO3D_HANDLER(StaticSceneApp, HandleCameraSetting));
+        SubscribeToEvent(urho3d::E_UPDATE,           URHO3D_HANDLER(StaticSceneApp, HandleUpdate));
+        SubscribeToEvent(urho3d::E_MOUSEWHEEL,       URHO3D_HANDLER(StaticSceneApp, HandleMouseWheel));
+        SubscribeToEvent(urho3d::E_KEYDOWN,          URHO3D_HANDLER(StaticSceneApp, HandleCameraSetting));
         SubscribeToEvent(urho3d::E_POSTRENDERUPDATE, URHO3D_HANDLER(StaticSceneApp, HandleGeometryRender));
     }
 
@@ -304,7 +304,6 @@ public:
         //delete
         SubscribeToEvent(deleteBtn, urho3d::E_RELEASED, URHO3D_HANDLER(StaticSceneApp, HandleDeleteButtonPress));
 
-
         //pos
         SubscribeToEvent(x_Neg,          urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
         SubscribeToEvent(y_Neg,          urho3d::E_TOGGLED,       URHO3D_HANDLER(StaticSceneApp, HandleCheckBox));
@@ -392,7 +391,10 @@ public:
 
         urho3d::Material* material = pathToXML.Empty() ? cache->GetResource<urho3d::Material>("Materials/DefaultGrey.xml") //fix
                                                        : cache->GetResource<urho3d::Material>(pathToXML);
-        tObject->SetMaterial(material);
+
+        urho3d::SharedPtr<urho3d::Material> uniqueMat = material ? material->Clone() : nullptr;
+        tObject->SetMaterial(uniqueMat);
+        //tObject->SetMaterial(material);
         node->CreateComponent<urho3d::RigidBody>();
         auto* shape = node->CreateComponent<urho3d::CollisionShape>();
         shape->SetTriangleMesh(tObject->GetModel());
@@ -518,7 +520,6 @@ public:
         gridGeoRed->SetMaterial(colorMatRed);
         gridGeoGreen->SetMaterial(colorMatGreen);
     /*===========================*/
-
         if (mdlLine_->GetText().Empty())
         {
             urho3d::Node* box = loadMDLObject(cache, "", "Models/Box.mdl");
@@ -551,7 +552,7 @@ public:
         instructionText_->SetFont(cache->GetResource<urho3d::Font>("Fonts/Anonymous Pro.ttf"), 15);
         instructionText_->SetHorizontalAlignment(urho3d::HA_CENTER);
         instructionText_->SetVerticalAlignment(urho3d::VA_CENTER);
-        instructionText_->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
+        instructionText_->SetPosition(0, ui->GetRoot()->GetHeight() / 3);
     }
 
     void SetupViewport()
@@ -656,7 +657,7 @@ public:
     {
         urho3d::String mdlPath = mdlLine_->GetText().Empty() ? "Models/Box.mdl" : mdlLine_->GetText();
         urho3d::String xmlPath = xmlLine_->GetText();
-        urho3d::Node* newNode = loadMDLObject(GetSubsystem<urho3d::ResourceCache>(), xmlPath, mdlPath);
+        urho3d::Node*  newNode = loadMDLObject(GetSubsystem<urho3d::ResourceCache>(), xmlPath, mdlPath);
 
         if (objects_.Size() == 0)
         {
@@ -664,7 +665,6 @@ public:
             yaw_ = 0.0f;
             pitch_ = 0.0f;
         }
-
         if (newNode)
         {
             objects_.Push({ urho3d::SharedPtr<urho3d::Node>(newNode), false });
@@ -1083,7 +1083,6 @@ public:
         {
             mauseVisibility = !mauseVisibility;
             bool isVisible = !GetSubsystem<urho3d::Input>()->IsMouseVisible();
-
             GetSubsystem<urho3d::Input>()->SetMouseVisible(isVisible);
             GetSubsystem<urho3d::Input>()->SetMouseMode(isVisible ? urho3d::MM_FREE : urho3d::MM_RELATIVE); 
         }
@@ -1277,4 +1276,6 @@ private:
     bool instructionVisibility = true;
 };
 URHO3D_DEFINE_APPLICATION_MAIN(StaticSceneApp)
-
+/*заупшить фикс изминения ывета у всех обьектов*/
+//загрузка и сохранение сцены 
+//нстроить масштабы 
