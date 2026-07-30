@@ -1,11 +1,13 @@
 # ModelsViewer
 
-A 3D model viewer built with Urho3D engine. Currently supports loading `.mdl` models with `.xml` material files, positioning objects in 3D space, and scaling them along each axis. More features are planned.
+A 3D model viewer built with Urho3D engine. Currently supports loading `.mdl` models with `.xml` material files, object positioning in 3D space, scaling along each axis, and color changes in RGB format.
 
 **Current features:**
 - Load `.mdl` models and apply `.xml` materials via file browser
 - Move objects along X / Y / Z axes with sliders (supports negative direction)
 - Scale objects along each axis independently
+- Ability to change the tilt of objects
+- Independent color changes for objects' materials are also supported
 - Apply position and scale via text input fields
 - Three-point lighting setup
 - Orbit camera with mouse, WASD movement, scroll zoom
